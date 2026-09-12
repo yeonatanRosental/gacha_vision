@@ -138,7 +138,8 @@ def decide(cards: list[Card], policy: Policy, watchlist: dict[str, float] | None
                     for s, why in chosen]
         return Decision(Action.CLAIM_BOTH, [s.slot for s, _ in chosen], scores, reasons)
 
-    if len(eligible) == 1:
+    if eligible:
+        # A one-claim limit still selects from the cards that earned a pick.
         s, why = eligible[0]
         reasons = [f"slot {s.slot}: {by_slot[s.slot].label()} -> {s.total:.1f}", f"claimed: {why}"]
         if len(ranked) > 1:

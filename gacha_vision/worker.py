@@ -18,8 +18,8 @@ exactly one reply per request so a caller can pipeline.
 
     ->  {"image": "<base64>", "expected": 2}
     <-  {"slots": [2], "cards": [
-          {"slot": 1, "printNo": 37,   "frame": "normal"},
-          {"slot": 2, "printNo": null, "frame": "e"}
+          {"slot": 1, "printNo": 37, "printTrusted": true, "frame": "normal"},
+          {"slot": 2, "printNo": null, "printTrusted": false, "frame": "e"}
         ]}
 
 `expected` is optional; omit it to let segmentation decide the card count.
@@ -29,10 +29,12 @@ spawn. Empty means claim nothing.
 
 `cards` is what the reader saw on the way to that answer. It costs nothing --
 the cards are read inside `pick` either way and were previously discarded.
-Two things about it are worth knowing on the far side:
+Three things about it are worth knowing on the far side:
 
 * `printNo` is null for an `E` card *and* for a numbered card whose badge
   could not be read. `frame` is what separates those two cases.
+* `printTrusted` is true only when a non-null `printNo` is trusted by the
+  ranker. An untrusted number is a tentative OCR read, kept for diagnostics.
 * `frame` is `"normal"`, `"e"`, `"other"` or `"unknown"`. `"other"` means a
   border matching neither known frame, which is claimed on sight whatever its
   print -- so it explains a claim that the number alone would not.
@@ -78,6 +80,8 @@ def handle(request: dict) -> dict:
             "slots": slots,
             "cards": [{"slot": c.slot,
                        "printNo": c.print_no,
+                       "printTrusted": (c.print_no is not None
+                                        and not c.no_number and c.print_trusted),
                        "frame": c.frame.value} for c in cards],
         }
     except Exception as exc:                      # never die on one bad request
